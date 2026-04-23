@@ -2,21 +2,31 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>閃電小偵探：反應力大挑戰</title>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html, body {
   width: 100%; height: 100%; background: #1a1a2e; color: #fff;
   font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans CJK TC", sans-serif;
   overflow: hidden;
   display: flex; justify-content: center; align-items: center;
+  touch-action: manipulation;
+  -webkit-user-select: none; user-select: none;
+  overscroll-behavior: none;
 }
+button, canvas { touch-action: manipulation; }
 .hidden { display: none !important; }
 
 #app {
   width: 1280px; height: 800px; position: relative;
   background: #0f0f23; box-shadow: 0 0 40px rgba(0,0,0,0.8);
   overflow: hidden;
+  transform: scale(var(--app-scale, 1));
+  transform-origin: center center;
+  flex-shrink: 0;
 }
 
 .screen {
@@ -837,6 +847,17 @@ function buildDebugPanel() {
   }
   panel.querySelector('#debug-close').onclick = () => panel.remove();
 }
+
+// ---- Responsive scaling (desktop / iPad / phone) ----
+function fitViewport() {
+  const sx = window.innerWidth / 1280;
+  const sy = window.innerHeight / 800;
+  const s = Math.min(sx, sy);
+  document.documentElement.style.setProperty('--app-scale', String(s));
+}
+window.addEventListener('resize', fitViewport);
+window.addEventListener('orientationchange', () => setTimeout(fitViewport, 50));
+fitViewport();
 
 // ---- Init ----
 async function main() {
