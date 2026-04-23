@@ -91,7 +91,8 @@ button, canvas { touch-action: manipulation; }
 
 #game {
   width: 960px; height: 720px; display: block;
-  cursor: crosshair; background: #000;
+  background: #000;
+  cursor: url('data:image/svg+xml;charset=utf8,<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36"><circle cx="14" cy="14" r="9" fill="rgba(255,230,0,0.25)" stroke="%23ffe600" stroke-width="3"/><line x1="20" y1="20" x2="31" y2="31" stroke="%23ffe600" stroke-width="4" stroke-linecap="round"/><line x1="20" y1="20" x2="31" y2="31" stroke="%23b89000" stroke-width="1" stroke-linecap="round"/></svg>') 14 14, pointer;
 }
 
 #target-panel {
@@ -184,9 +185,34 @@ button, canvas { touch-action: manipulation; }
 #debug-panel .bgs { display: grid; grid-template-columns: repeat(2,1fr); gap: 4px; }
 #debug-panel .bgs canvas { width: 100%; }
 #debug-close { position: absolute; top: 8px; right: 8px; background: #ff3355; color: #fff; border: none; padding: 6px 12px; cursor: pointer; }
+
+/* Rotate-to-landscape prompt (phone portrait only) */
+#rotate-prompt {
+  position: fixed; inset: 0; background: #0f0f23;
+  display: none; justify-content: center; align-items: center;
+  flex-direction: column; z-index: 1000; text-align: center; padding: 40px;
+}
+#rotate-prompt.active { display: flex; }
+.rotate-icon {
+  font-size: 120px; margin-bottom: 32px; transform-origin: center center;
+  animation: rotate-phone 2.2s ease-in-out infinite;
+}
+@keyframes rotate-phone {
+  0%, 30% { transform: rotate(0deg); }
+  55%, 80% { transform: rotate(-90deg); }
+  100% { transform: rotate(0deg); }
+}
+.rotate-text { font-size: 36px; color: #ffe600; margin-bottom: 14px; font-weight: bold; text-shadow: 3px 3px 0 #ff66cc; }
+.rotate-sub { font-size: 20px; color: #77ccff; }
 </style>
 </head>
 <body>
+<div id="rotate-prompt">
+  <div class="rotate-icon">📱</div>
+  <div class="rotate-text">請把手機轉橫</div>
+  <div class="rotate-sub">橫向模式遊戲才好玩 🎮</div>
+</div>
+
 <div id="app">
 
   <div id="loading">素材載入中...</div>
@@ -850,10 +876,14 @@ function buildDebugPanel() {
 
 // ---- Responsive scaling (desktop / iPad / phone) ----
 function fitViewport() {
-  const sx = window.innerWidth / 1280;
-  const sy = window.innerHeight / 800;
-  const s = Math.min(sx, sy);
+  const w = window.innerWidth, h = window.innerHeight;
+  const s = Math.min(w / 1280, h / 800);
   document.documentElement.style.setProperty('--app-scale', String(s));
+
+  // Show "rotate to landscape" prompt on narrow portrait (phones).
+  // Tablets in portrait (>= 700px wide) still playable, no prompt.
+  const isPhonePortrait = h > w && w < 700;
+  document.getElementById('rotate-prompt').classList.toggle('active', isPhonePortrait);
 }
 window.addEventListener('resize', fitViewport);
 window.addEventListener('orientationchange', () => setTimeout(fitViewport, 50));
