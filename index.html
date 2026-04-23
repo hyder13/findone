@@ -1,0 +1,908 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>閃電小偵探：反應力大挑戰</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%; height: 100%; background: #1a1a2e; color: #fff;
+  font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans CJK TC", sans-serif;
+  overflow: hidden;
+  display: flex; justify-content: center; align-items: center;
+}
+.hidden { display: none !important; }
+
+#app {
+  width: 1280px; height: 800px; position: relative;
+  background: #0f0f23; box-shadow: 0 0 40px rgba(0,0,0,0.8);
+  overflow: hidden;
+}
+
+.screen {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+}
+
+/* Title screen */
+#screen-title h1 {
+  font-size: 64px; color: #ffe600;
+  text-shadow: 4px 4px 0 #ff66cc, 6px 6px 0 rgba(0,0,0,0.3);
+  margin-bottom: 24px; letter-spacing: 4px;
+}
+#screen-title .sub { font-size: 24px; color: #77ccff; margin-bottom: 48px; }
+
+.big-btn {
+  font-size: 32px; padding: 18px 56px; background: #ffe600; color: #222;
+  border: 5px solid #ff66cc; border-radius: 18px; cursor: pointer;
+  font-weight: bold; font-family: inherit; margin: 10px;
+  transition: transform 0.1s, box-shadow 0.1s;
+  box-shadow: 0 6px 0 #d94d9c;
+}
+.big-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 0 #d94d9c; }
+.big-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #d94d9c; }
+
+/* Difficulty screen */
+#screen-difficulty h2 { font-size: 40px; margin-bottom: 40px; color: #ffe600; }
+#screen-difficulty .options { display: flex; gap: 24px; }
+
+/* Game screen */
+#screen-game { display: flex; flex-direction: column; padding: 0; }
+#status-bar {
+  width: 100%; height: 80px; flex-shrink: 0;
+  background: linear-gradient(180deg, #1a1a2e, #2a2a48);
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; padding: 0 32px;
+  border-bottom: 4px solid #4a4a7a;
+}
+#level-label {
+  font-size: 30px; font-weight: bold; color: #ffe600;
+  letter-spacing: 2px;
+}
+#timer {
+  font-size: 62px; font-weight: bold; color: #fff;
+  min-width: 120px; text-align: center; line-height: 1;
+  font-family: "Courier New", monospace;
+  text-shadow: 0 3px 0 rgba(0,0,0,0.4);
+}
+#timer.urgent { color: #ff3355; animation: blink 0.5s infinite; }
+@keyframes blink { 50% { opacity: 0.3; } }
+#status-right { text-align: right; color: #aaa; font-size: 14px; }
+
+#game-wrap { flex: 1; display: flex; position: relative; }
+#game-wrap.shake { animation: shake 0.3s; }
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+
+#game {
+  width: 960px; height: 720px; display: block;
+  cursor: crosshair; background: #000;
+}
+
+#target-panel {
+  width: 320px; height: 720px; flex-shrink: 0;
+  background: linear-gradient(180deg, #2a2a48, #1a1a2e);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 28px 16px; border-left: 4px solid #4a4a7a;
+}
+.target-title { font-size: 24px; color: #ffe600; margin-bottom: 18px; letter-spacing: 2px; }
+.target-frame {
+  width: 250px; height: 250px; background: #fff; border-radius: 20px; padding: 12px;
+  box-shadow: 0 0 30px rgba(255,230,0,0.7), inset 0 0 20px rgba(255,102,204,0.25);
+  border: 4px solid #ff66cc;
+  display: flex; justify-content: center; align-items: center;
+  animation: glow 1.8s ease-in-out infinite alternate;
+}
+@keyframes glow {
+  from { box-shadow: 0 0 20px rgba(255,230,0,0.5), inset 0 0 20px rgba(255,102,204,0.2); }
+  to   { box-shadow: 0 0 40px rgba(255,230,0,0.9), inset 0 0 20px rgba(255,102,204,0.4); }
+}
+#target-preview { max-width: 220px; max-height: 220px; }
+#target-name {
+  margin-top: 24px; font-size: 24px; font-weight: bold; color: #fff;
+  text-align: center; padding: 0 8px;
+}
+.target-hint { margin-top: 14px; font-size: 16px; color: #aaa; }
+
+/* Game over */
+#screen-gameover h2 {
+  font-size: 64px; color: #ffe600; margin-bottom: 16px;
+  text-shadow: 3px 3px 0 #ff66cc;
+}
+#screen-gameover .emoji { font-size: 120px; margin-bottom: 24px; }
+#screen-gameover .sub { font-size: 28px; margin-bottom: 24px; color: #77ffaa; }
+#screen-gameover .result-time {
+  font-size: 28px; color: #fff; margin-bottom: 40px;
+  background: rgba(255,230,0,0.15); padding: 16px 40px;
+  border-radius: 16px; border: 3px solid #ffe600;
+}
+#screen-gameover .result-time #gameover-time {
+  font-size: 44px; font-weight: bold; color: #ffe600;
+  margin-left: 16px; font-family: "Courier New", monospace;
+}
+
+/* Loading */
+#loading {
+  position: fixed; inset: 0; background: rgba(15,15,35,0.95);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 200; font-size: 28px; color: #ffe600;
+}
+
+/* Modal */
+#modal {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.65);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 50;
+}
+.modal-inner {
+  background: #fff; color: #222; padding: 48px 72px;
+  border-radius: 28px; text-align: center;
+  border: 6px solid #ffe600;
+  animation: pop 0.25s ease-out;
+  min-width: 360px;
+}
+@keyframes pop {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+#modal-emoji { font-size: 80px; margin-bottom: 8px; }
+#modal-text { font-size: 38px; margin-bottom: 28px; font-weight: bold; color: #ff66cc; }
+#modal-btn {
+  font-size: 26px; padding: 14px 40px;
+  background: #ff66cc; color: #fff; border: none; border-radius: 14px;
+  cursor: pointer; font-family: inherit; font-weight: bold;
+  box-shadow: 0 5px 0 #b04488;
+  transition: transform 0.1s;
+}
+#modal-btn:hover { transform: translateY(-2px); }
+#modal-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #b04488; }
+
+/* Debug panel */
+#debug-panel {
+  position: fixed; top: 0; right: 0; width: 720px; height: 100vh;
+  background: rgba(0,0,0,0.9); overflow-y: auto; padding: 16px;
+  z-index: 500; color: #fff; font-size: 11px;
+}
+#debug-panel .grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; }
+#debug-panel .grid canvas { width: 100%; background: #333; border: 1px solid #555; }
+#debug-panel h3 { color: #ffe600; margin: 8px 0; }
+#debug-panel .bgs { display: grid; grid-template-columns: repeat(2,1fr); gap: 4px; }
+#debug-panel .bgs canvas { width: 100%; }
+#debug-close { position: absolute; top: 8px; right: 8px; background: #ff3355; color: #fff; border: none; padding: 6px 12px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="loading">素材載入中...</div>
+
+  <div id="screen-title" class="screen hidden">
+    <h1>⚡ 閃電小偵探 ⚡</h1>
+    <div class="sub">反應力大挑戰 — 找出目標物品！</div>
+    <button id="btn-start" class="big-btn">開始遊戲</button>
+  </div>
+
+  <div id="screen-difficulty" class="screen hidden">
+    <h2>選擇難度</h2>
+    <div class="options">
+      <button id="btn-diff-10" class="big-btn">🐢 10 秒</button>
+      <button id="btn-diff-5" class="big-btn">⚡ 5 秒</button>
+    </div>
+  </div>
+
+  <div id="screen-game" class="screen hidden">
+    <div id="status-bar">
+      <div id="level-label">LEVEL 01 / 10</div>
+      <div id="timer">10</div>
+      <div id="status-right">🎯 找出右側的目標</div>
+    </div>
+    <div id="game-wrap">
+      <canvas id="game" width="960" height="720"></canvas>
+      <div id="target-panel">
+        <div class="target-title">🎯 目標物品</div>
+        <div class="target-frame">
+          <canvas id="target-preview" width="220" height="220"></canvas>
+        </div>
+        <div id="target-name">—</div>
+        <div class="target-hint">點一下畫面中的它</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-gameover" class="screen hidden">
+    <div class="emoji">🏆</div>
+    <h2>闖關成功！</h2>
+    <div class="sub">你是超強閃電小偵探！</div>
+    <div class="result-time">
+      完成時間
+      <span id="gameover-time">—</span>
+    </div>
+    <button id="btn-retry" class="big-btn">再玩一次</button>
+  </div>
+
+  <div id="modal" class="hidden">
+    <div class="modal-inner">
+      <div id="modal-emoji">✨</div>
+      <div id="modal-text">找到了！</div>
+      <button id="modal-btn">下一關</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// =====================================================================
+// 《閃電小偵探：反應力大挑戰》
+// =====================================================================
+
+// ---- Config ----
+const CANVAS_W = 960, CANVAS_H = 720;
+
+// Sprite sheet slicing: auto-detect bg color, CC-based extraction.
+const BG_SAMPLE_EDGE_PX = 6;             // sample this many pixels thick border around image
+const BG_COLOR_TOLERANCE = 80;           // Euclidean RGB distance considered "bg"
+const SPRITE_MIN_PIXELS = 300;           // reject noise
+const SPRITE_MAX_WIDTH_RATIO = 0.45;     // reject title banner
+const SPRITE_MAX_ASPECT = 4.0;           // reject thin rectangles
+const SPRITE_SKIP_ABOVE_Y = 180;         // reject components entirely above this Y (title text)
+const SPRITE_SKIP_BELOW_Y_FROM_BOTTOM = 30; // reject components entirely within bottom N px (attribution)
+
+// Background panels (tune by inspecting backgrounds.png coordinates).
+const BG_CROPS = [
+  { name: 'playroom', sx: 60,   sy: 280, sw: 1320, sh: 540 },
+  { name: 'park',     sx: 1436, sy: 280, sw: 1320, sh: 540 },
+  { name: 'beach',    sx: 60,   sy: 1000, sw: 1320, sh: 520 },
+  { name: 'kitchen',  sx: 1436, sy: 1000, sw: 1320, sh: 520 },
+];
+
+// Level -> bg index (0..3)
+const LEVEL_BG = [0,0,0, 1,1, 2,2, 3,3,3];
+
+// Background darkening overlay (0 = no darken, 1 = fully black)
+const BG_DARKEN_ALPHA = 0.35;
+
+// Level config: [distractor_count, coverage_ratio].
+// Coverage ramps through 4 stages: 50% -> 60% -> 80% -> 90%.
+// Item size is auto-derived so total item area ≈ coverage × canvas area.
+// Placement uses a jittered grid (guaranteed no overlap, no duplicates).
+const LEVEL_CONFIG = [
+  { d: 14, c: 0.50 },   // L1 — stage 1
+  { d: 18, c: 0.50 },   // L2
+  { d: 24, c: 0.50 },   // L3
+  { d: 32, c: 0.60 },   // L4 — stage 2
+  { d: 42, c: 0.60 },   // L5
+  { d: 55, c: 0.80 },   // L6 — stage 3
+  { d: 65, c: 0.80 },   // L7
+  { d: 72, c: 0.80 },   // L8
+  { d: 80, c: 0.90 },   // L9 — stage 4
+  { d: 85, c: 0.90 },   // L10
+];
+
+// ---- State ----
+let itemSprites = [];   // {canvas, w, h, index}
+let bgSprites = [];
+let itemNames = [];     // items.json content
+let placed = [];        // items placed this level
+let target = null;
+let particles = [];
+let level = 1;
+let timeLimit = 10;
+let timeLeft = 10;
+let timerId = null;
+let state = 'TITLE';    // TITLE | DIFF | PLAY | RESULT | GAMEOVER
+let lastFrame = 0;
+let gameStartTime = 0;
+let gameElapsedMs = 0;
+
+// ---- Asset loading ----
+function loadImage(src) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => res(img);
+    img.onerror = () => rej(new Error('圖片載入失敗: ' + src));
+    img.src = src;
+  });
+}
+
+async function loadNames() {
+  try {
+    const res = await fetch('items.json');
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (e) {
+    // file:// fetch may fail, that's OK - use auto names
+    return [];
+  }
+}
+
+// ---- Slice sprites (connected components with filtering) ----
+let _lastSliceDebug = null;  // for debug overlay
+
+// Sample image perimeter, return median [R, G, B] as background color.
+function detectBgColor(d, SW, SH) {
+  const rs = [], gs = [], bs = [];
+  const E = BG_SAMPLE_EDGE_PX;
+  const push = (x, y) => {
+    const p = (y * SW + x) * 4;
+    rs.push(d[p]); gs.push(d[p+1]); bs.push(d[p+2]);
+  };
+  // Top + bottom strips (skip top 200px to avoid title banner)
+  for (let x = 0; x < SW; x += 8) {
+    for (let y = SH - E; y < SH; y++) push(x, y);
+  }
+  // Left + right strips
+  for (let y = 200; y < SH; y += 8) {
+    for (let x = 0; x < E; x++) push(x, y);
+    for (let x = SW - E; x < SW; x++) push(x, y);
+  }
+  rs.sort((a,b)=>a-b); gs.sort((a,b)=>a-b); bs.sort((a,b)=>a-b);
+  const mid = Math.floor(rs.length / 2);
+  return [rs[mid], gs[mid], bs[mid]];
+}
+
+function sliceSprites(img) {
+  const SW = img.width, SH = img.height;
+  const cnv = document.createElement('canvas');
+  cnv.width = SW; cnv.height = SH;
+  const ctx = cnv.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0);
+
+  // 1. Auto-detect bg color from image border (robust to any shade of magenta)
+  const imgData = ctx.getImageData(0, 0, SW, SH);
+  const d = imgData.data;
+  const N = SW * SH;
+  const bgColor = detectBgColor(d, SW, SH);
+  console.log(`[slice] detected bg color: rgb(${bgColor[0]}, ${bgColor[1]}, ${bgColor[2]})`);
+
+  // Mark bg pixels as transparent; build solid-pixel mask
+  const TH2 = BG_COLOR_TOLERANCE * BG_COLOR_TOLERANCE;
+  const mask = new Uint8Array(N);
+  let solidCount = 0;
+  for (let p = 0, i = 0; i < N; p += 4, i++) {
+    const dr = d[p] - bgColor[0];
+    const dg = d[p+1] - bgColor[1];
+    const db = d[p+2] - bgColor[2];
+    if (dr*dr + dg*dg + db*db < TH2) {
+      d[p+3] = 0;
+    } else {
+      mask[i] = 1;
+      solidCount++;
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+  console.log(`[slice] solid pixels: ${solidCount} (${(solidCount/N*100).toFixed(1)}%)`);
+
+  // 2. 8-connected flood fill
+  const labels = new Int32Array(N);
+  const stack = new Int32Array(N);
+  const comps = [];
+  let label = 0;
+  for (let y = 0; y < SH; y++) {
+    for (let x = 0; x < SW; x++) {
+      const idx = y * SW + x;
+      if (mask[idx] !== 1 || labels[idx] !== 0) continue;
+      label++;
+      let sp = 0;
+      stack[sp++] = idx;
+      labels[idx] = label;
+      let minX = x, minY = y, maxX = x, maxY = y, count = 0;
+      while (sp > 0) {
+        const cur = stack[--sp];
+        const cx = cur % SW;
+        const cy = (cur - cx) / SW;
+        count++;
+        if (cx < minX) minX = cx; if (cx > maxX) maxX = cx;
+        if (cy < minY) minY = cy; if (cy > maxY) maxY = cy;
+        for (let dy = -1; dy <= 1; dy++) {
+          const ny = cy + dy;
+          if (ny < 0 || ny >= SH) continue;
+          for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = cx + dx;
+            if (nx < 0 || nx >= SW) continue;
+            const nidx = ny * SW + nx;
+            if (mask[nidx] === 1 && labels[nidx] === 0) {
+              labels[nidx] = label;
+              stack[sp++] = nidx;
+            }
+          }
+        }
+      }
+      comps.push({ minX, minY, maxX, maxY, count });
+    }
+  }
+  const rawCount = comps.length;
+
+  // 3. Filter: noise, banners, thin rectangles, top/bottom text
+  let filtered = comps.filter(c => {
+    const w = c.maxX - c.minX + 1;
+    const h = c.maxY - c.minY + 1;
+    if (c.count < SPRITE_MIN_PIXELS) return false;
+    if (w > SW * SPRITE_MAX_WIDTH_RATIO) return false;
+    const ar = Math.max(w / h, h / w);
+    if (ar > SPRITE_MAX_ASPECT) return false;
+    if (c.maxY < SPRITE_SKIP_ABOVE_Y) return false;          // top title text
+    if (c.minY > SH - SPRITE_SKIP_BELOW_Y_FROM_BOTTOM) return false;  // bottom attribution
+    return true;
+  });
+  const filterCount = filtered.length;
+
+  // 4. Sort into rows then columns.
+  // Bucket by y using median height as tolerance.
+  const heights = filtered.map(c => c.maxY - c.minY + 1).sort((a, b) => a - b);
+  const medH = heights[Math.floor(heights.length / 2)] || 100;
+  const rowTol = medH * 0.5;
+  filtered.sort((a, b) => {
+    const acy = (a.minY + a.maxY) / 2;
+    const bcy = (b.minY + b.maxY) / 2;
+    if (Math.abs(acy - bcy) > rowTol) return acy - bcy;
+    return (a.minX + a.maxX) / 2 - (b.minX + b.maxX) / 2;
+  });
+
+  // 5. Extract each into its own canvas
+  const sprites = [];
+  for (let i = 0; i < filtered.length; i++) {
+    const c = filtered[i];
+    const pad = 3;
+    const sx = Math.max(0, c.minX - pad);
+    const sy = Math.max(0, c.minY - pad);
+    const sw = Math.min(SW - sx, c.maxX - c.minX + 1 + pad * 2);
+    const sh = Math.min(SH - sy, c.maxY - c.minY + 1 + pad * 2);
+    const sc = document.createElement('canvas');
+    sc.width = sw; sc.height = sh;
+    sc.getContext('2d').drawImage(cnv, sx, sy, sw, sh, 0, 0, sw, sh);
+    sprites.push({ canvas: sc, w: sw, h: sh, index: i });
+  }
+
+  _lastSliceDebug = { sourceCanvas: cnv, comps: filtered, rawCount, filterCount, finalCount: sprites.length };
+  console.log(`[slice] raw CC: ${rawCount}  filtered: ${filterCount}  final: ${sprites.length}`);
+  return sprites;
+}
+
+// ---- Slice backgrounds ----
+function sliceBackgrounds(img) {
+  return BG_CROPS.map(c => {
+    const cnv = document.createElement('canvas');
+    cnv.width = c.sw; cnv.height = c.sh;
+    cnv.getContext('2d').drawImage(img, c.sx, c.sy, c.sw, c.sh, 0, 0, c.sw, c.sh);
+    return { canvas: cnv, name: c.name, w: c.sw, h: c.sh };
+  });
+}
+
+// ---- Poisson disk sampling (Bridson's) ----
+function poissonDisk(w, h, r, k = 30) {
+  const cellSize = r / Math.SQRT2;
+  const gw = Math.ceil(w / cellSize), gh = Math.ceil(h / cellSize);
+  const grid = new Array(gw * gh).fill(null);
+  const pts = [], active = [];
+  const add = (p) => {
+    pts.push(p); active.push(p);
+    grid[Math.floor(p.x / cellSize) + Math.floor(p.y / cellSize) * gw] = p;
+  };
+  add({ x: Math.random() * w, y: Math.random() * h });
+  while (active.length) {
+    const ai = Math.floor(Math.random() * active.length);
+    const p = active[ai];
+    let ok = false;
+    for (let i = 0; i < k; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const rad = r + Math.random() * r;
+      const nx = p.x + Math.cos(ang) * rad;
+      const ny = p.y + Math.sin(ang) * rad;
+      if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+      const gx = Math.floor(nx / cellSize), gy = Math.floor(ny / cellSize);
+      let good = true;
+      for (let dy = -2; dy <= 2 && good; dy++) {
+        for (let dx = -2; dx <= 2 && good; dx++) {
+          const ax = gx + dx, ay = gy + dy;
+          if (ax < 0 || ay < 0 || ax >= gw || ay >= gh) continue;
+          const q = grid[ax + ay * gw];
+          if (q && (q.x - nx) ** 2 + (q.y - ny) ** 2 < r * r) good = false;
+        }
+      }
+      if (good) { add({ x: nx, y: ny }); ok = true; break; }
+    }
+    if (!ok) active.splice(ai, 1);
+  }
+  return pts;
+}
+
+// ---- Level generation: jittered grid (no overlap, no duplicates) ----
+function shuffleInPlace(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function generateLevel(n) {
+  const cfg = LEVEL_CONFIG[n - 1];
+  let total = Math.min(cfg.d + 1, itemSprites.length);
+
+  // Derive item size so total area ≈ coverage × canvas
+  const s = Math.sqrt(cfg.c * CANVAS_W * CANVAS_H / total);
+
+  // Grow cellSize as much as possible while still fitting `total` cells.
+  // Larger cellSize = more jitter headroom per item.
+  let cellSize = Math.ceil(s) + 1;
+  for (let cs = cellSize; cs <= 300; cs += 1) {
+    const c = Math.floor(CANVAS_W / cs);
+    const r = Math.floor(CANVAS_H / cs);
+    if (c * r < total) break;
+    cellSize = cs;
+  }
+  const cols = Math.floor(CANVAS_W / cellSize);
+  const rows = Math.floor(CANVAS_H / cellSize);
+
+  if (cols * rows < total) {
+    total = cols * rows;
+    console.warn(`[level ${n}] grid capped to ${total} items`);
+  }
+
+  const offX = (CANVAS_W - cols * cellSize) / 2;
+  const offY = (CANVAS_H - rows * cellSize) / 2;
+
+  // Pick unique sprites (first will be target)
+  const poolIdx = shuffleInPlace(itemSprites.map((_, i) => i)).slice(0, total);
+  const cellOrder = shuffleInPlace(Array.from({ length: cols * rows }, (_, i) => i));
+
+  const items = [];
+  for (let i = 0; i < total; i++) {
+    const cellIdx = cellOrder[i];
+    const col = cellIdx % cols;
+    const row = Math.floor(cellIdx / cols);
+    const sp = itemSprites[poolIdx[i]];
+    const sc = s / Math.max(sp.w, sp.h);
+    const w = sp.w * sc, h = sp.h * sc;
+    const jxMax = Math.max(0, cellSize - w);
+    const jyMax = Math.max(0, cellSize - h);
+    const x = offX + col * cellSize + Math.random() * jxMax;
+    const y = offY + row * cellSize + Math.random() * jyMax;
+    items.push({
+      sprite: sp, x, y, w, h,
+      isTarget: i === 0, animT: 0
+    });
+  }
+
+  shuffleInPlace(items);  // randomize draw order
+  return { items, target: items.find(it => it.isTarget) };
+}
+
+// ---- Rendering ----
+function render() {
+  const c = document.getElementById('game');
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+  const bg = bgSprites[LEVEL_BG[level - 1]];
+  if (bg) {
+    ctx.drawImage(bg.canvas, 0, 0, CANVAS_W, CANVAS_H);
+    ctx.fillStyle = `rgba(0, 0, 0, ${BG_DARKEN_ALPHA})`;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  }
+
+  for (const it of placed) {
+    let sb = 1;
+    if (it.isTarget && it.animT > 0) {
+      const t = 1 - it.animT / 300;
+      sb = 1 + 0.35 * Math.sin(t * Math.PI);
+    }
+    const w = it.w * sb, h = it.h * sb;
+    const x = it.x + (it.w - w) / 2, y = it.y + (it.h - h) / 2;
+    ctx.drawImage(it.sprite.canvas, x, y, w, h);
+  }
+
+  for (const p of particles) {
+    const a = Math.max(0, p.life / p.lifeMax);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.fillStyle = p.color;
+    ctx.font = p.size + 'px serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('★', p.x, p.y);
+    ctx.restore();
+  }
+}
+
+function renderTargetPreview() {
+  const c = document.getElementById('target-preview');
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  if (!target) return;
+  const sp = target.sprite;
+  const sc = Math.min(c.width / sp.w, c.height / sp.h) * 0.92;
+  const w = sp.w * sc, h = sp.h * sc;
+  ctx.drawImage(sp.canvas, (c.width - w) / 2, (c.height - h) / 2, w, h);
+
+  const nameEntry = itemNames[sp.index];
+  const nice = nameEntry && nameEntry.zh ? nameEntry.zh
+            : (nameEntry && nameEntry.en ? nameEntry.en
+            : '物件 #' + (sp.index + 1));
+  document.getElementById('target-name').textContent = nice;
+}
+
+// ---- Click handling ----
+function handleClick(e) {
+  if (state !== 'PLAY') return;
+  const c = document.getElementById('game');
+  const rect = c.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (CANVAS_W / rect.width);
+  const y = (e.clientY - rect.top) * (CANVAS_H / rect.height);
+
+  for (let i = placed.length - 1; i >= 0; i--) {
+    const it = placed[i];
+    if (x < it.x || x >= it.x + it.w) continue;
+    if (y < it.y || y >= it.y + it.h) continue;
+    // Alpha test
+    const sx = Math.floor((x - it.x) / it.w * it.sprite.w);
+    const sy = Math.floor((y - it.y) / it.h * it.sprite.h);
+    try {
+      const px = it.sprite.canvas.getContext('2d').getImageData(sx, sy, 1, 1).data;
+      if (px[3] < 40) continue;
+    } catch (err) { /* ignore */ }
+    if (it.isTarget) onSuccess(it);
+    else onFail();
+    return;
+  }
+  // Clicked empty space - ignore
+}
+
+// ---- Events ----
+function onSuccess(item) {
+  state = 'RESULT';
+  stopTimer();
+  item.animT = 300;
+  const cx = item.x + item.w / 2, cy = item.y + item.h / 2;
+  for (let i = 0; i < 18; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const sp = 2 + Math.random() * 5;
+    particles.push({
+      x: cx, y: cy,
+      vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 2,
+      life: 700, lifeMax: 700,
+      size: 20 + Math.random() * 24,
+      color: ['#ffe600','#ff66cc','#66ccff','#77ff88','#ffffff'][Math.floor(Math.random() * 5)]
+    });
+  }
+  setTimeout(() => showModal('success'), 450);
+}
+
+function onFail() {
+  state = 'RESULT';
+  stopTimer();
+  const wrap = document.getElementById('game-wrap');
+  wrap.classList.add('shake');
+  setTimeout(() => wrap.classList.remove('shake'), 300);
+  setTimeout(() => showModal('fail'), 200);
+}
+
+function onTimeout() { onFail(); }
+
+// ---- Timer ----
+function startTimer() {
+  stopTimer();
+  timeLeft = timeLimit;
+  updateTimerUI();
+  timerId = setInterval(() => {
+    timeLeft--;
+    updateTimerUI();
+    if (timeLeft <= 0) { stopTimer(); onTimeout(); }
+  }, 1000);
+}
+function stopTimer() { if (timerId) { clearInterval(timerId); timerId = null; } }
+function updateTimerUI() {
+  const el = document.getElementById('timer');
+  el.textContent = timeLeft;
+  el.classList.toggle('urgent', timeLeft <= 3);
+}
+
+// ---- Modal ----
+function showModal(kind) {
+  const m = document.getElementById('modal');
+  const emoji = document.getElementById('modal-emoji');
+  const text = document.getElementById('modal-text');
+  const btn = document.getElementById('modal-btn');
+  if (kind === 'success') {
+    emoji.textContent = '✨🎉';
+    text.textContent = '找到了！';
+    btn.textContent = level >= 10 ? '看結算' : '下一關';
+    btn.onclick = () => { hideModal(); nextLevel(); };
+  } else {
+    emoji.textContent = '😭';
+    text.textContent = '啊~失敗了';
+    btn.textContent = '再試一次';
+    btn.onclick = () => { hideModal(); retryLevel(); };
+  }
+  m.classList.remove('hidden');
+}
+function hideModal() { document.getElementById('modal').classList.add('hidden'); }
+
+// ---- Level flow ----
+function startLevel() {
+  state = 'PLAY';
+  const gen = generateLevel(level);
+  placed = gen.items;
+  target = gen.target;
+  document.getElementById('level-label').textContent =
+    `LEVEL ${String(level).padStart(2, '0')} / 10`;
+  renderTargetPreview();
+  startTimer();
+}
+function nextLevel() {
+  if (level >= 10) { gameOver(); return; }
+  level++;
+  startLevel();
+}
+function retryLevel() { startLevel(); }
+function gameOver() {
+  state = 'GAMEOVER';
+  stopTimer();
+  placed = []; target = null;
+  gameElapsedMs = Date.now() - gameStartTime;
+  const sec = gameElapsedMs / 1000;
+  const mm = Math.floor(sec / 60);
+  const ss = (sec - mm * 60).toFixed(1);
+  const el = document.getElementById('gameover-time');
+  if (el) {
+    el.textContent = mm > 0
+      ? `${mm} 分 ${ss} 秒`
+      : `${ss} 秒`;
+  }
+  showScreen('screen-gameover');
+}
+
+function showScreen(id) {
+  for (const s of ['screen-title','screen-difficulty','screen-game','screen-gameover']) {
+    document.getElementById(s).classList.toggle('hidden', s !== id);
+  }
+}
+
+// ---- RAF ----
+function frame(t) {
+  const dt = lastFrame ? Math.min(50, t - lastFrame) : 16;
+  lastFrame = t;
+  for (const it of placed) if (it.animT > 0) it.animT = Math.max(0, it.animT - dt);
+  for (const p of particles) {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.2;
+    p.life -= dt;
+  }
+  particles = particles.filter(p => p.life > 0);
+  if (state === 'PLAY' || state === 'RESULT') render();
+  requestAnimationFrame(frame);
+}
+
+// ---- Debug panel ----
+function buildDebugPanel() {
+  const panel = document.createElement('div');
+  panel.id = 'debug-panel';
+  const dbg = _lastSliceDebug || {};
+  panel.innerHTML = `
+    <button id="debug-close">關閉</button>
+    <h3>偵測統計</h3>
+    <div>原始連通區塊: ${dbg.rawCount ?? '?'} | 過濾後: ${dbg.filterCount ?? '?'} | 最終: ${itemSprites.length}</div>
+    <h3>偵測疊圖（紅框＝被當作物件；綠編號＝排序後 index）</h3>
+    <canvas id="dbg-overlay" style="width:100%;border:1px solid #555"></canvas>
+    <h3>切出的物件（共 ${itemSprites.length}）</h3>
+    <div class="grid" id="dbg-sprites"></div>
+    <h3>切出的背景（${bgSprites.length} / 4）</h3>
+    <div class="bgs" id="dbg-bgs"></div>
+  `;
+  document.body.appendChild(panel);
+
+  // Overlay: scale down source image + draw bboxes
+  if (dbg.sourceCanvas && dbg.comps) {
+    const ov = panel.querySelector('#dbg-overlay');
+    const scale = 0.35;
+    ov.width = dbg.sourceCanvas.width * scale;
+    ov.height = dbg.sourceCanvas.height * scale;
+    const octx = ov.getContext('2d');
+    // checkered bg so transparent is visible
+    octx.fillStyle = '#333'; octx.fillRect(0, 0, ov.width, ov.height);
+    octx.drawImage(dbg.sourceCanvas, 0, 0, ov.width, ov.height);
+    octx.lineWidth = 1.5;
+    octx.font = '11px monospace';
+    for (let i = 0; i < dbg.comps.length; i++) {
+      const c = dbg.comps[i];
+      const x = c.minX * scale, y = c.minY * scale;
+      const w = (c.maxX - c.minX + 1) * scale;
+      const h = (c.maxY - c.minY + 1) * scale;
+      octx.strokeStyle = '#ff3355';
+      octx.strokeRect(x, y, w, h);
+      octx.fillStyle = '#77ff88';
+      octx.fillText(String(i), x + 2, y + 11);
+    }
+  }
+
+  const sg = panel.querySelector('#dbg-sprites');
+  for (const sp of itemSprites) {
+    const cv = document.createElement('canvas');
+    cv.width = sp.w; cv.height = sp.h;
+    cv.getContext('2d').drawImage(sp.canvas, 0, 0);
+    cv.title = '#' + (sp.index + 1);
+    sg.appendChild(cv);
+  }
+  const bb = panel.querySelector('#dbg-bgs');
+  for (const bg of bgSprites) {
+    const cv = document.createElement('canvas');
+    cv.width = bg.w; cv.height = bg.h;
+    cv.getContext('2d').drawImage(bg.canvas, 0, 0);
+    cv.title = bg.name;
+    bb.appendChild(cv);
+  }
+  panel.querySelector('#debug-close').onclick = () => panel.remove();
+}
+
+// ---- Init ----
+async function main() {
+  try {
+    const [sprImg, bgImg, names] = await Promise.all([
+      loadImage('sprites.png'),
+      loadImage('backgrounds.png'),
+      loadNames()
+    ]);
+    itemNames = names;
+    itemSprites = sliceSprites(sprImg);
+    bgSprites = sliceBackgrounds(bgImg);
+    const isDebug = location.search.includes('debug');
+    if (itemSprites.length < 50 && !isDebug) {
+      throw new Error(`切圖異常：只得到 ${itemSprites.length} 個物件（預期 100）。網址後面加 ?debug 查看偵測結果。`);
+    }
+  } catch (err) {
+    const el = document.getElementById('loading');
+    if (err && (err.name === 'SecurityError' || /tainted|cross-origin/i.test(err.message))) {
+      el.innerHTML = `
+        <div style="max-width:700px;text-align:center;line-height:1.6;padding:24px">
+          <div style="font-size:48px;margin-bottom:12px">🚧</div>
+          <div style="font-size:22px;color:#ffe600;margin-bottom:16px">需要用 local server 開啟遊戲</div>
+          <div style="font-size:16px;color:#fff">
+            瀏覽器在 <code style="background:#333;padding:2px 6px;border-radius:4px">file://</code> 協定下不允許讀取圖片像素（安全限制）。<br><br>
+            請在 <b>這個資料夾</b> 開啟終端機執行其中任一：
+            <div style="text-align:left;background:#000;padding:16px;margin:12px 0;border-radius:8px;font-family:monospace;font-size:14px;color:#77ff88">
+              python -m http.server 8000<br>
+              <span style="color:#aaa"># 或</span><br>
+              npx http-server -p 8000
+            </div>
+            然後用瀏覽器打開 <code style="background:#333;padding:2px 6px;border-radius:4px">http://localhost:8000/index.html</code>
+          </div>
+        </div>
+      `;
+    } else {
+      el.textContent = '載入失敗: ' + (err.message || err);
+    }
+    console.error(err);
+    return;
+  }
+
+  document.getElementById('loading').style.display = 'none';
+  showScreen('screen-title');
+
+  document.getElementById('btn-start').onclick = () => showScreen('screen-difficulty');
+  document.getElementById('btn-diff-10').onclick = () => beginGame(10);
+  document.getElementById('btn-diff-5').onclick = () => beginGame(5);
+  document.getElementById('btn-retry').onclick = () => beginGame(timeLimit);
+  document.getElementById('game').addEventListener('click', handleClick);
+
+  // Debug mode: append ?debug to URL
+  if (location.search.includes('debug')) buildDebugPanel();
+
+  requestAnimationFrame(frame);
+}
+
+function beginGame(seconds) {
+  level = 1;
+  timeLimit = seconds;
+  gameStartTime = Date.now();
+  showScreen('screen-game');
+  startLevel();
+}
+
+main();
+</script>
+</body>
+</html>
